@@ -1,202 +1,382 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ماين كرافت هب</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#f2f5ee;--card:#fff;--tx:#1c2a1a;--mut:#5d6b59;--ac:#3f9b2f;--ac2:#2c6f21;--bd:#d6e0d0;--dng:#c0392b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11160f;--card:#1b2418;--tx:#e8f0e4;--mut:#9fb199;--ac:#5fc94a;--ac2:#3f9b2f;--bd:#2c3a28;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#11160f;--card:#1b2418;--tx:#e8f0e4;--mut:#9fb199;--ac:#5fc94a;--ac2:#3f9b2f;--bd:#2c3a28;color-scheme:dark}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--tx);font-family:'Cairo',system-ui,sans-serif;min-height:100vh}
-header{background:linear-gradient(135deg,#2c6f21,#3f9b2f 60%,#7bd35f);color:#fff;padding:22px 16px 18px;position:relative}
-.top{max-width:900px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-h1{margin:0;font-size:26px;font-weight:900}
-.sub{opacity:.9;font-size:13px}
-button,input,textarea,select{font-family:inherit;font-size:15px}
-.btn{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:9px 16px;cursor:pointer;font-weight:700}
-.btn:hover{background:var(--ac2)}
-.btn.ghost{background:rgba(255,255,255,.2)}
-.btn.sec{background:transparent;border:1px solid var(--bd);color:var(--tx)}
-.btn.dng{background:var(--dng)}
-main{max-width:900px;margin:auto;padding:16px}
-.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:16px}
-.tab{background:var(--card);border:2px solid var(--bd);border-radius:12px;padding:12px 6px;text-align:center;cursor:pointer;font-weight:700;color:var(--tx)}
-.tab small{display:block;font-weight:400;color:var(--mut);font-size:11px}
-.tab.on{border-color:var(--ac);background:var(--ac);color:#fff}.tab.on small{color:#e6ffe0}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px}
-.item{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
-.item h3{margin:0 0 4px;font-size:17px}.item p{margin:0;color:var(--mut);font-size:13px;white-space:pre-wrap}
-.badge{font-size:11px;background:var(--bd);border-radius:6px;padding:2px 7px;color:var(--mut)}
-.empty{text-align:center;color:var(--mut);padding:30px}
-input,textarea,select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);margin:5px 0}
-label{font-size:13px;color:var(--mut)}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
-.modal.show{display:flex}
-.box{background:var(--card);border-radius:16px;padding:18px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
-.row{display:flex;gap:8px}.row>*{flex:1}
-.seg{display:flex;gap:6px;margin:6px 0}.seg button{flex:1}
-footer{text-align:center;padding:24px 12px;color:var(--mut);font-size:14px}
-footer b{color:var(--ac)}
-.err{color:var(--dng);font-size:13px;min-height:18px}
-</style>
-</head>
-<body>
-<header><div class="top">
-<div><h1>⛏️ ماين كرافت هب</h1><div class="sub">مودات • ريسورس باكات • عوالم • هاكات</div></div>
-<div style="display:flex;gap:8px;align-items:center">
-<span id="who" class="sub"></span>
-<button class="btn ghost" id="authBtn">تسجيل الدخول</button>
-</div></div></header>
+import 'dart:convert';
+import 'dart:io';
+import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-<main>
-<div class="tabs" id="tabs"></div>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-<h2 id="secTitle" style="margin:0;font-size:19px"></h2>
-<button class="btn" id="addBtn" style="display:none">➕ إضافة</button>
-</div>
-<div id="list"></div>
-</main>
+const adminUser = 'shade015'; // الحساب الأدمن (الوحيد الذي يضيف ويحذف)
 
-<footer>© جميع الحقوق محفوظة لـ <b>شادي</b><br>تيك توك: <b>@shade015</b></footer>
+const cats = <List<String>>[
+  ['mods_be', 'مودات بيدروك'],
+  ['mods_java', 'مودات جافا'],
+  ['rp_be', 'ريسورس بيدروك'],
+  ['rp_java', 'ريسورس جافا'],
+  ['worlds', 'العوالم'],
+  ['hacks', 'الهاكات'],
+];
 
-<div class="modal" id="mAuth"><div class="box">
-<div class="seg"><button class="btn" id="tLogin">دخول</button><button class="btn sec" id="tSign">إنشاء حساب</button></div>
-<label>اسم المستخدم</label><input id="u" autocomplete="username">
-<label>كلمة المرور</label><input id="p" type="password" autocomplete="current-password">
-<div class="err" id="aErr"></div>
-<div class="row"><button class="btn" id="aGo">دخول</button><button class="btn sec" data-close>إغلاق</button></div>
-</div></div>
+void main() => runApp(const MyApp());
 
-<div class="modal" id="mAdd"><div class="box">
-<h3 style="margin-top:0">إضافة جديد</h3>
-<label>القسم</label><select id="cat"></select>
-<label>العنوان</label><input id="t">
-<label>الوصف</label><textarea id="d" rows="3"></textarea>
-<label>طريقة الإضافة</label>
-<div class="seg"><button class="btn" id="mFile">📁 ملف</button><button class="btn sec" id="mLink">🔗 رابط</button></div>
-<div id="fileBox"><input type="file" id="f"></div>
-<div id="linkBox" style="display:none"><input id="l" placeholder="https://..." dir="ltr"></div>
-<div class="err" id="eErr"></div>
-<div class="row"><button class="btn" id="eGo">نشر</button><button class="btn sec" data-close>إلغاء</button></div>
-</div></div>
-
-<script>
-const CATS=[
- {id:'mods_be',n:'المودات',s:'بيدروك'},
- {id:'mods_java',n:'المودات',s:'جافا'},
- {id:'rp_be',n:'الريسورس باكات',s:'بيدروك'},
- {id:'rp_java',n:'الريسورس باكات',s:'جافا'},
- {id:'worlds',n:'العوالم',s:'Worlds'},
- {id:'hacks',n:'الهاكات',s:'Hacks'}];
-let cur=CATS[0].id,items=[],db=null,assets=null,downloads=null,me=null,isAdmin=false,mode='file';
-const $=id=>document.getElementById(id);
-const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
-me=ls.get('mc_user');
-
-function tabs(){
- $('tabs').innerHTML='';
- CATS.forEach(c=>{const b=document.createElement('div');b.className='tab'+(c.id===cur?' on':'');
-  b.innerHTML=c.n+'<small>'+c.s+'</small>';b.onclick=()=>{cur=c.id;tabs();render()};$('tabs').appendChild(b)});
- const c=CATS.find(x=>x.id===cur);$('secTitle').textContent=c.n+' ('+c.s+')';
+class Item {
+  String id, cat, title, desc, type, ref, fname;
+  Item(this.id, this.cat, this.title, this.desc, this.type, this.ref, this.fname);
+  Map<String, dynamic> toJson() => {
+        'id': id, 'cat': cat, 'title': title, 'desc': desc,
+        'type': type, 'ref': ref, 'fname': fname
+      };
+  factory Item.fromJson(Map<String, dynamic> j) => Item(j['id'], j['cat'],
+      j['title'], j['desc'] ?? '', j['type'], j['ref'], j['fname'] ?? '');
 }
-function render(){
- const L=$('list');L.innerHTML='';
- const arr=items.filter(i=>i.cat===cur).sort((a,b)=>b.ts-a.ts);
- if(!arr.length){L.innerHTML='<div class="empty">لا يوجد محتوى بعد في هذا القسم</div>';return}
- arr.forEach(i=>{
-  const d=document.createElement('div');d.className='card item';
-  const info=document.createElement('div');
-  const h=document.createElement('h3');h.textContent=i.title;
-  const p=document.createElement('p');p.textContent=i.desc||'';
-  const bd=document.createElement('span');bd.className='badge';bd.textContent=i.type==='file'?'ملف':'رابط';
-  info.append(h,p,bd);
-  const act=document.createElement('div');act.style.display='flex';act.style.gap='6px';
-  const g=document.createElement('button');g.className='btn';g.textContent='⬇️ تحميل';g.onclick=()=>get(i);act.appendChild(g);
-  if(isAdmin){const x=document.createElement('button');x.className='btn dng';x.textContent='🗑️';x.onclick=()=>del(i);act.appendChild(x)}
-  d.append(info,act);L.appendChild(d)});
-}
-async function get(i){
- if(i.type==='link'){window.open(i.ref,'_blank','noopener');return}
- try{
-  const r=await fetch('/_blob/'+i.ref);const b=await r.blob();
-  if(downloads){await downloads.save({filename:i.fname||i.title,data:b})}else window.open('/_blob/'+i.ref,'_blank');
- }catch(e){alert('تعذر التحميل')}
-}
-async function del(i){
- if(!confirm('حذف "'+i.title+'"؟'))return;
- try{await db.doc('items/'+i.id).delete();if(i.type==='file'&&assets)assets.delete(i.ref).catch(()=>{})}catch(e){alert('فشل الحذف')}
-}
-function ui(){
- $('who').textContent=me?('👤 '+me+(isAdmin?' (مشرف)':'')):'';
- $('authBtn').textContent=me?'تسجيل الخروج':'تسجيل الدخول';
- $('addBtn').style.display=isAdmin?'':'none';
- render();
-}
-async function sha(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 
-// Auth
-let authMode='login';
-function setAuth(m){authMode=m;$('tLogin').className='btn'+(m==='login'?'':' sec');$('tSign').className='btn'+(m==='sign'?'':' sec');$('aGo').textContent=m==='login'?'دخول':'إنشاء حساب';$('aErr').textContent=''}
-$('tLogin').onclick=()=>setAuth('login');$('tSign').onclick=()=>setAuth('sign');
-$('authBtn').onclick=()=>{if(me){me=null;ls.del('mc_user');ui()}else{setAuth('login');$('mAuth').classList.add('show')}};
-$('aGo').onclick=async()=>{
- const u=$('u').value.trim().toLowerCase(),p=$('p').value;$('aErr').textContent='';
- if(!/^[a-z0-9_]{3,20}$/.test(u))return $('aErr').textContent='اسم المستخدم: 3-20 حرف إنجليزي/أرقام/_';
- if(p.length<6)return $('aErr').textContent='كلمة المرور 6 أحرف على الأقل';
- if(!db)return $('aErr').textContent='الخدمة غير متاحة حالياً';
- try{
-  const ref=db.doc('accounts/'+u);const snap=await ref.get();
-  const ex=snap&&(snap.exists===true||(typeof snap.exists==='function'&&snap.exists()));
-  const data=ex?(typeof snap.data==='function'?snap.data():snap.data):null;
-  if(authMode==='sign'){
-   if(data)return $('aErr').textContent='اسم المستخدم مستخدم';
-   const salt=crypto.randomUUID();await ref.set({salt,hash:await sha(salt+p),ts:Date.now()});
-  }else{
-   if(!data||data.hash!==await sha(data.salt+p))return $('aErr').textContent='بيانات الدخول غير صحيحة';
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ماين كرافت هب',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3F9B2F)),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF3F9B2F), brightness: Brightness.dark),
+      ),
+      builder: (c, child) =>
+          Directionality(textDirection: TextDirection.rtl, child: child!),
+      home: const Home(),
+    );
   }
-  me=u;ls.set('mc_user',u);$('mAuth').classList.remove('show');$('u').value=$('p').value='';ui();
- }catch(e){$('aErr').textContent='حدث خطأ، حاول مرة أخرى'}
-};
+}
 
-// Add
-function setMode(m){mode=m;$('fileBox').style.display=m==='file'?'':'none';$('linkBox').style.display=m==='link'?'':'none';$('mFile').className='btn'+(m==='file'?'':' sec');$('mLink').className='btn'+(m==='link'?'':' sec')}
-$('mFile').onclick=()=>setMode('file');$('mLink').onclick=()=>setMode('link');
-$('addBtn').onclick=()=>{$('cat').innerHTML=CATS.map(c=>'<option value="'+c.id+'">'+c.n+' ('+c.s+')</option>').join('');$('cat').value=cur;$('eErr').textContent='';setMode('file');$('mAdd').classList.add('show')};
-$('eGo').onclick=async()=>{
- const title=$('t').value.trim();$('eErr').textContent='';
- if(!title)return $('eErr').textContent='اكتب العنوان';
- const it={cat:$('cat').value,title,desc:$('d').value.trim(),ts:Date.now(),type:mode};
- $('eGo').disabled=true;
- try{
-  if(mode==='file'){
-   const f=$('f').files[0];if(!f)throw 'اختر ملف';
-   if(!assets)throw 'رفع الملفات غير متاح';
-   if(f.size>20*1048576)throw 'الحد الأقصى 20MB، استخدم الرابط للملفات الأكبر';
-   const r=await assets.upload(f);it.ref=r.id;it.fname=f.name;
-  }else{
-   const l=$('l').value.trim();if(!/^https?:\/\//i.test(l))throw 'رابط غير صحيح';it.ref=l;
+class Home extends StatefulWidget {
+  const Home({super.key});
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  late SharedPreferences sp;
+  bool ready = false;
+  List<Item> items = [];
+  Map<String, dynamic> accounts = {};
+  String? me;
+
+  bool get isAdmin => me == adminUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
   }
-  const id='i'+it.ts;await db.doc('items/'+id).set(it);
-  $('mAdd').classList.remove('show');$('t').value=$('d').value=$('l').value='';$('f').value='';
- }catch(e){$('eErr').textContent=typeof e==='string'?e:'فشل النشر'}
- $('eGo').disabled=false;
-};
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('.modal').classList.remove('show'));
 
-tabs();ui();
-(async()=>{
- try{
-  const u=await claude.use('user');isAdmin=!!(u&&(u.isOwner()||u.canEdit()));
-  db=await claude.use('db');assets=await claude.use('assets');downloads=await claude.use('downloads');
-  if(isAdmin&&!me){me='شادي';}
-  ui();
-  if(db)db.collection('items').onSnapshot(s=>{items=[];s.forEach(d=>items.push({id:d.id,...d.data()}));render()});
- }catch(e){ui()}
-})();
-</script>
-</body>
-</html>
+  Future<void> _load() async {
+    sp = await SharedPreferences.getInstance();
+    items = (jsonDecode(sp.getString('items') ?? '[]') as List)
+        .map((e) => Item.fromJson(e))
+        .toList();
+    accounts = jsonDecode(sp.getString('accounts') ?? '{}');
+    me = sp.getString('me');
+    setState(() => ready = true);
+  }
+
+  Future<void> _saveItems() =>
+      sp.setString('items', jsonEncode(items.map((e) => e.toJson()).toList()));
+
+  String _hash(String salt, String p) =>
+      sha256.convert(utf8.encode(salt + p)).toString();
+
+  void _snack(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  // ---------- تسجيل الدخول / إنشاء حساب ----------
+  void _authDialog() {
+    final u = TextEditingController(), p = TextEditingController();
+    bool signup = false;
+    String err = '';
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, set) {
+        return AlertDialog(
+          title: Text(signup ? 'إنشاء حساب' : 'تسجيل الدخول'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(
+                controller: u,
+                decoration: const InputDecoration(labelText: 'اسم المستخدم')),
+            TextField(
+                controller: p,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'كلمة المرور')),
+            if (err.isNotEmpty)
+              Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(err, style: const TextStyle(color: Colors.red))),
+            TextButton(
+                onPressed: () => set(() {
+                      signup = !signup;
+                      err = '';
+                    }),
+                child: Text(signup
+                    ? 'عندي حساب؟ سجل دخول'
+                    : 'ما عندي حساب؟ أنشئ حساب')),
+          ]),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () async {
+                final name = u.text.trim().toLowerCase(), pass = p.text;
+                if (!RegExp(r'^[a-z0-9_]{3,20}$').hasMatch(name)) {
+                  return set(() => err = 'الاسم: 3-20 حرف إنجليزي/أرقام/_');
+                }
+                if (pass.length < 6) {
+                  return set(() => err = 'كلمة المرور 6 أحرف على الأقل');
+                }
+                final acc = accounts[name];
+                if (signup) {
+                  if (acc != null) return set(() => err = 'الاسم مستخدم');
+                  final salt = DateTime.now().microsecondsSinceEpoch.toString();
+                  accounts[name] = {'salt': salt, 'hash': _hash(salt, pass)};
+                  await sp.setString('accounts', jsonEncode(accounts));
+                } else {
+                  if (acc == null || acc['hash'] != _hash(acc['salt'], pass)) {
+                    return set(() => err = 'بيانات الدخول غير صحيحة');
+                  }
+                }
+                await sp.setString('me', name);
+                setState(() => me = name);
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: Text(signup ? 'إنشاء' : 'دخول'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Future<void> _logout() async {
+    await sp.remove('me');
+    setState(() => me = null);
+  }
+
+  // ---------- إضافة محتوى (للأدمن فقط) ----------
+  void _addDialog(String defCat) {
+    final t = TextEditingController(),
+        d = TextEditingController(),
+        l = TextEditingController();
+    String cat = defCat, mode = 'file', err = '';
+    PlatformFile? picked;
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, set) {
+        return AlertDialog(
+          title: const Text('إضافة جديد'),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButtonFormField<String>(
+                value: cat,
+                items: cats
+                    .map((c) =>
+                        DropdownMenuItem(value: c[0], child: Text(c[1])))
+                    .toList(),
+                onChanged: (v) => set(() => cat = v!),
+              ),
+              TextField(
+                  controller: t,
+                  decoration: const InputDecoration(labelText: 'العنوان')),
+              TextField(
+                  controller: d,
+                  maxLines: 3,
+                  decoration: const InputDecoration(labelText: 'الوصف')),
+              const SizedBox(height: 10),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'file', label: Text('ملف'), icon: Icon(Icons.folder)),
+                  ButtonSegment(value: 'link', label: Text('رابط'), icon: Icon(Icons.link)),
+                ],
+                selected: {mode},
+                onSelectionChanged: (s) => set(() => mode = s.first),
+              ),
+              const SizedBox(height: 8),
+              if (mode == 'file')
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.attach_file),
+                  label: Text(picked?.name ?? 'اختر ملف'),
+                  onPressed: () async {
+                    final r = await FilePicker.platform.pickFiles();
+                    if (r != null) set(() => picked = r.files.first);
+                  },
+                )
+              else
+                TextField(
+                    controller: l,
+                    textDirection: TextDirection.ltr,
+                    decoration: const InputDecoration(hintText: 'https://...')),
+              if (err.isNotEmpty)
+                Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(err, style: const TextStyle(color: Colors.red))),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () async {
+                if (t.text.trim().isEmpty) return set(() => err = 'اكتب العنوان');
+                final id = DateTime.now().millisecondsSinceEpoch.toString();
+                String ref, fname = '';
+                if (mode == 'file') {
+                  if (picked?.path == null) return set(() => err = 'اختر ملف');
+                  final dir = await getApplicationDocumentsDirectory();
+                  final up = Directory('${dir.path}/uploads');
+                  await up.create(recursive: true);
+                  fname = picked!.name;
+                  final dest = '${up.path}/${id}_$fname';
+                  await File(picked!.path!).copy(dest);
+                  ref = dest;
+                } else {
+                  ref = l.text.trim();
+                  if (!RegExp(r'^https?://', caseSensitive: false).hasMatch(ref)) {
+                    return set(() => err = 'رابط غير صحيح');
+                  }
+                }
+                items.add(Item(id, cat, t.text.trim(), d.text.trim(), mode, ref, fname));
+                await _saveItems();
+                setState(() {});
+                if (ctx.mounted) Navigator.pop(ctx);
+              },
+              child: const Text('نشر'),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Future<void> _open(Item i) async {
+    if (i.type == 'link') {
+      final ok = await launchUrl(Uri.parse(i.ref), mode: LaunchMode.externalApplication);
+      if (!ok) _snack('تعذر فتح الرابط');
+    } else {
+      final r = await OpenFilex.open(i.ref);
+      if (r.type != ResultType.done) _snack('تعذر فتح الملف');
+    }
+  }
+
+  Future<void> _delete(Item i) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('حذف "${i.title}"؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('لا')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('حذف')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (i.type == 'file') {
+      try { await File(i.ref).delete(); } catch (_) {}
+    }
+    items.removeWhere((e) => e.id == i.id);
+    await _saveItems();
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!ready) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final cs = Theme.of(context).colorScheme;
+    return DefaultTabController(
+      length: cats.length,
+      child: Builder(builder: (context) {
+        final tc = DefaultTabController.of(context);
+        return Scaffold(
+          appBar: AppBar(
+            backgroundColor: cs.primary,
+            foregroundColor: cs.onPrimary,
+            title: const Text('⛏️ ماين كرافت هب',
+                style: TextStyle(fontWeight: FontWeight.w900)),
+            actions: [
+              if (me != null)
+                Center(
+                    child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text('👤 $me${isAdmin ? ' (مشرف)' : ''}',
+                            style: const TextStyle(fontSize: 12)))),
+              IconButton(
+                tooltip: me == null ? 'تسجيل الدخول' : 'تسجيل الخروج',
+                icon: Icon(me == null ? Icons.login : Icons.logout),
+                onPressed: me == null ? _authDialog : _logout,
+              ),
+            ],
+            bottom: TabBar(
+              isScrollable: true,
+              labelColor: cs.onPrimary,
+              unselectedLabelColor: cs.onPrimary.withOpacity(.7),
+              indicatorColor: cs.onPrimary,
+              tabs: cats.map((c) => Tab(text: c[1])).toList(),
+            ),
+          ),
+          floatingActionButton: isAdmin
+              ? FloatingActionButton.extended(
+                  onPressed: () => _addDialog(cats[tc.index][0]),
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة'),
+                )
+              : null,
+          body: Column(children: [
+            Expanded(
+              child: TabBarView(
+                children: cats.map((c) {
+                  final list = items.where((e) => e.cat == c[0]).toList().reversed.toList();
+                  if (list.isEmpty) {
+                    return const Center(child: Text('لا يوجد محتوى بعد في هذا القسم'));
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: list.length,
+                    itemBuilder: (_, k) {
+                      final i = list[k];
+                      return Card(
+                        child: ListTile(
+                          title: Text(i.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${i.desc}\n${i.type == 'file' ? 'ملف' : 'رابط'}'),
+                          isThreeLine: true,
+                          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                            IconButton(icon: const Icon(Icons.download), onPressed: () => _open(i)),
+                            if (isAdmin)
+                              IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => _delete(i)),
+                          ]),
+                        ),
+                      );
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text('© جميع الحقوق محفوظة لـ شادي\nتيك توك: @shade015',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: cs.primary, fontWeight: FontWeight.bold)),
+            ),
+          ]),
+        );
+      }),
+    );
+  }
+}
